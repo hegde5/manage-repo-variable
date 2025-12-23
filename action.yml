@@ -1,0 +1,86 @@
+name: Set Repository Variable
+description: Create or update a GitHub repository variable
+
+inputs:
+  variable_name:
+    description: Name of the repository variable to create or update
+    required: true
+    type: string
+
+  variable_value:
+    description: Value of the repository variable
+    required: true
+    type: string
+
+  token:
+    description: >
+      Personal Access Token (PAT) with permission to manage repository variables
+      (Variables: read and write).
+    required: true
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Set or update repository variable
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        OWNER_REPO: ${{ github.repository }}
+        VARIABLE_NAME: ${{ inputs.variable_name }}
+        VARIABLE_VALUE: ${{ inputs.variable_value }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "$GH_TOKEN" ]]; then
+          echo "ERROR: A Personal Access Token (PAT) is required."
+          echo "GITHUB_TOKEN cannot be used to manage repository variables."
+          exit 1
+        fi
+
+        api_base="https://api.github.com/repos/${OWNER_REPO}/actions/variables"
+
+        echo "Attempting to update repository variable '${VARIABLE_NAME}'..."
+
+        response=$(curl -sS -w "\n%{http_code}" \
+          -X PATCH \
+          -H "Authorization: Bearer ${GH_TOKEN}" \
+          -H "Accept: application/vnd.github+json" \
+          -H "Content-Type: application/json" \
+          -d "{\"value\":\"${VARIABLE_VALUE}\"}" \
+          "${api_base}/${VARIABLE_NAME}")
+
+        http_status=$(echo "$response" | tail -n1)
+        body=$(echo "$response" | sed '$d')
+
+        if [[ "$http_status" =~ ^2 ]]; then
+          echo "✅ Repository variable '${VARIABLE_NAME}' updated"
+          exit 0
+        fi
+
+        if [[ "$http_status" != "404" ]]; then
+          echo "❌ Failed to update variable (HTTP ${http_status})"
+          echo "$body"
+          exit 1
+        fi
+
+        echo "Variable not found, creating '${VARIABLE_NAME}'..."
+
+        response=$(curl -sS -w "\n%{http_code}" \
+          -X POST \
+          -H "Authorization: Bearer ${GH_TOKEN}" \
+          -H "Accept: application/vnd.github+json" \
+          -H "Content-Type: application/json" \
+          -d "{\"name\":\"${VARIABLE_NAME}\",\"value\":\"${VARIABLE_VALUE}\"}" \
+          "$api_base")
+
+        http_status=$(echo "$response" | tail -n1)
+        body=$(echo "$response" | sed '$d')
+
+        if [[ "$http_status" =~ ^2 ]]; then
+          echo "✅ Repository variable '${VARIABLE_NAME}' created"
+        else
+          echo "❌ Failed to create variable (HTTP ${http_status})"
+          echo "$body"
+          exit 1
+        fi
