@@ -1,4 +1,4 @@
-# set-repo-variable
+# manage-repo-variable
 Set GitHub repository variables in CI workflows.
 
 This action allows you to create or update repository-level variables using the GitHub REST API. It is useful for bootstrapping workflows, preparing environments, or synchronizing configuration during CI.
@@ -14,10 +14,10 @@ Example workflow (see `.github/workflows/example-use.yml`):
 
 ```
 jobs:
-  set-repo-var:
+  manage-repo-var:
     runs-on: ubuntu-latest
     steps:
-      - uses: hegde5/set-repo-variable@v1
+      - uses: hegde5/manage-repo-variable@v1
         with:
           variable_name: MY_VAR
           variable_value: "MY_VAL"

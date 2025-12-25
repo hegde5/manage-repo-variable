@@ -1,4 +1,4 @@
-name: Set Repository Variable
+name: Manage Repository Variable
 description: Create or update a GitHub repository variable
 
 inputs:
