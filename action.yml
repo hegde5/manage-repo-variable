@@ -84,3 +84,7 @@ runs:
           echo "$body"
           exit 1
         fi
+
+branding:
+  icon: sliders
+  color: blue
